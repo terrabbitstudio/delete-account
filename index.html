@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <title>アカウント削除</title>
@@ -15,38 +15,59 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const supabaseClient = supabase.createClient(
-  "YOUR_SUPABASE_URL",
-  "YOUR_ANON_KEY"
+  "https://muhhyyzipcowojrjejkg.supabase.co",
+  "sb_publishable_J4W-iZS82wfCkcBta8btQQ_ccC1I6K7"
 )
 
+// 🔐 ログイン処理
 document.getElementById("login").onclick = async () => {
   await supabaseClient.auth.signInWithOAuth({
-    provider: "google"
+    provider: "google",
+    options: {
+      redirectTo: window.location.href
+    }
   })
 }
 
+// 👤 ログイン状態チェック
 async function checkUser() {
   const { data } = await supabaseClient.auth.getUser()
   if (data.user) {
-    document.getElementById("user").innerText = data.user.email
+    document.getElementById("user").innerText = "ログイン中: " + data.user.email
     document.getElementById("delete").style.display = "block"
   }
 }
 
 checkUser()
 
+// 🗑️ 削除処理
 document.getElementById("delete").onclick = async () => {
-  const { data } = await supabaseClient.auth.getSession()
-  const token = data.session.access_token
+  const confirmDelete = confirm("本当にアカウントを削除しますか？この操作は元に戻せません。")
+  if (!confirmDelete) return
 
-  await fetch("YOUR_EDGE_FUNCTION_URL", {
+  const { data } = await supabaseClient.auth.getSession()
+  const token = data.session?.access_token
+
+  if (!token) {
+    alert("ログイン状態が確認できません。再ログインしてください。")
+    return
+  }
+
+  const res = await fetch("https://muhhyyzipcowojrjejkg.supabase.co/delete-user", {
     method: "POST",
     headers: {
       "Authorization": "Bearer " + token
     }
   })
 
-  alert("削除しました")
+  if (res.ok) {
+    alert("アカウントを削除しました")
+    await supabaseClient.auth.signOut()
+    location.reload()
+  } else {
+    const err = await res.text()
+    alert("削除に失敗しました: " + err)
+  }
 }
 </script>
 
