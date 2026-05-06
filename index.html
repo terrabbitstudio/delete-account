@@ -29,7 +29,7 @@ document.getElementById("login").onclick = async () => {
   })
 }
 
-// 👤 ログイン状態チェック（ここ強化）
+// 👤 ログイン状態チェック
 async function checkUser() {
   const { data, error } = await supabaseClient.auth.getUser()
 
@@ -46,7 +46,7 @@ async function checkUser() {
 
 checkUser()
 
-// 🗑️ 削除
+// 🗑️ 削除処理
 document.getElementById("delete").onclick = async () => {
   const confirmDelete = confirm("本当にアカウントを削除しますか？")
   if (!confirmDelete) return
@@ -54,6 +54,7 @@ document.getElementById("delete").onclick = async () => {
   const { data } = await supabaseClient.auth.getSession()
   const token = data.session?.access_token
 
+  console.log("session:", data.session)
   console.log("token:", token)
 
   if (!token) {
@@ -66,6 +67,7 @@ document.getElementById("delete").onclick = async () => {
       method: "POST",
       headers: {
         "Authorization": "Bearer " + token,
+        "apikey": "sb_publishable_J4W-iZS82wfCkcBta8btQQ_ccC1I6K7",
         "Content-Type": "application/json"
       }
     })
