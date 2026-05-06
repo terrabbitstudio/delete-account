@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>アカウント削除</title>
+</head>
+<body>
+
+<h2>アカウント削除</h2>
+
+<button id="login">Googleでログイン</button>
+<p id="user"></p>
+<button id="delete" style="display:none;">アカウント削除</button>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const supabaseClient = supabase.createClient(
+  "YOUR_SUPABASE_URL",
+  "YOUR_ANON_KEY"
+)
+
+document.getElementById("login").onclick = async () => {
+  await supabaseClient.auth.signInWithOAuth({
+    provider: "google"
+  })
+}
+
+async function checkUser() {
+  const { data } = await supabaseClient.auth.getUser()
+  if (data.user) {
+    document.getElementById("user").innerText = data.user.email
+    document.getElementById("delete").style.display = "block"
+  }
+}
+
+checkUser()
+
+document.getElementById("delete").onclick = async () => {
+  const { data } = await supabaseClient.auth.getSession()
+  const token = data.session.access_token
+
+  await fetch("YOUR_EDGE_FUNCTION_URL", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + token
+    }
+  })
+
+  alert("削除しました")
+}
+</script>
+
+</body>
+</html>
