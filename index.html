@@ -19,7 +19,7 @@ const supabaseClient = supabase.createClient(
   "sb_publishable_J4W-iZS82wfCkcBta8btQQ_ccC1I6K7"
 )
 
-// 🔐 ログイン処理
+// 🔐 ログイン
 document.getElementById("login").onclick = async () => {
   await supabaseClient.auth.signInWithOAuth({
     provider: "google",
@@ -29,9 +29,15 @@ document.getElementById("login").onclick = async () => {
   })
 }
 
-// 👤 ログイン状態チェック
+// 👤 ログイン状態チェック（ここ強化）
 async function checkUser() {
-  const { data } = await supabaseClient.auth.getUser()
+  const { data, error } = await supabaseClient.auth.getUser()
+
+  if (error) {
+    console.log("getUser error:", error)
+    return
+  }
+
   if (data.user) {
     document.getElementById("user").innerText = "ログイン中: " + data.user.email
     document.getElementById("delete").style.display = "block"
@@ -40,33 +46,46 @@ async function checkUser() {
 
 checkUser()
 
-// 🗑️ 削除処理
+// 🗑️ 削除
 document.getElementById("delete").onclick = async () => {
-  const confirmDelete = confirm("本当にアカウントを削除しますか？この操作は元に戻せません。")
+  const confirmDelete = confirm("本当にアカウントを削除しますか？")
   if (!confirmDelete) return
 
   const { data } = await supabaseClient.auth.getSession()
   const token = data.session?.access_token
+
+  console.log("token:", token)
 
   if (!token) {
     alert("ログイン状態が確認できません。再ログインしてください。")
     return
   }
 
-  const res = await fetch("https://muhhyyzipcowojrjejkg.supabase.co/functions/v1/delete-account", {
-    method: "POST",
-    headers: {
-      "Authorization": "Bearer " + token
-    }
-  })
+  try {
+    const res = await fetch("https://muhhyyzipcowojrjejkg.supabase.co/functions/v1/delete-account", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      }
+    })
 
-  if (res.ok) {
-    alert("アカウントを削除しました")
-    await supabaseClient.auth.signOut()
-    location.reload()
-  } else {
-    const err = await res.text()
-    alert("削除に失敗しました: " + err)
+    console.log("status:", res.status)
+
+    const text = await res.text()
+    console.log("response:", text)
+
+    if (res.ok) {
+      alert("アカウントを削除しました")
+      await supabaseClient.auth.signOut()
+      location.reload()
+    } else {
+      alert("削除失敗: " + text)
+    }
+
+  } catch (e) {
+    console.error("fetch error:", e)
+    alert("通信エラーが発生しました")
   }
 }
 </script>
