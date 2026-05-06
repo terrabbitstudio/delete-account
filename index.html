@@ -64,10 +64,10 @@
       color: #333;
     }
 
-    .footer {
-      margin-top: 20px;
-      font-size: 12px;
-      color: #888;
+    #error {
+      color: red;
+      font-size: 13px;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -82,17 +82,14 @@
     削除するとデータは完全に消去され、復元できません。
   </p>
 
-  <p class="warning">
-    ※この操作は取り消せません
-  </p>
+  <p class="warning">※この操作は取り消せません</p>
 
   <button id="login">Googleでログイン</button>
-  <p id="user"></p>
-  <button id="delete">アカウントを削除</button>
 
-  <div class="footer">
-    ログインできない場合はアプリ内からお問い合わせください。
-  </div>
+  <p id="user"></p>
+  <p id="error"></p>
+
+  <button id="delete">アカウントを削除</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -113,13 +110,32 @@ document.getElementById("login").onclick = async () => {
   })
 }
 
-// 👤 ログイン状態チェック
+// 👤 ログイン後チェック（ここが本体）
 async function checkUser() {
-  const { data } = await supabaseClient.auth.getUser()
 
-  if (!data.user) return
+  const { data: { user } } = await supabaseClient.auth.getUser()
 
-  document.getElementById("user").innerText = "ログイン中: " + data.user.email
+  if (!user) return
+
+  document.getElementById("user").innerText = "ログイン中: " + user.email
+
+  // 🔥 DBに存在するかチェック
+  const { data, error } = await supabaseClient
+    .from("users")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle()
+
+  // ❌ 未登録ユーザー
+  if (!data) {
+    document.getElementById("error").innerText =
+      "このアカウントは登録されていません"
+
+    await supabaseClient.auth.signOut({ scope: 'global' })
+    return
+  }
+
+  // ✅ 正常ユーザー
   document.getElementById("delete").style.display = "block"
 }
 
@@ -127,16 +143,12 @@ checkUser()
 
 // 🗑️ 削除
 document.getElementById("delete").onclick = async () => {
-  const confirmDelete = confirm("本当にアカウントを削除しますか？")
-  if (!confirmDelete) return
+
+  const ok = confirm("本当に削除しますか？")
+  if (!ok) return
 
   const { data } = await supabaseClient.auth.getSession()
   const token = data.session?.access_token
-
-  if (!token) {
-    alert("ログイン状態が確認できません")
-    return
-  }
 
   const res = await fetch("https://muhhyyzipcowojrjejkg.supabase.co/functions/v1/delete-account", {
     method: "POST",
@@ -148,18 +160,13 @@ document.getElementById("delete").onclick = async () => {
   })
 
   if (res.ok) {
-    alert("アカウントを削除しました")
+    alert("削除完了")
 
-    // 🔥 完全ログアウト（再ログイン防止の弱対策）
     await supabaseClient.auth.signOut({ scope: 'global' })
-    localStorage.clear()
-    sessionStorage.clear()
-
     location.reload()
 
   } else {
-    const err = await res.text()
-    alert("削除失敗: " + err)
+    alert("削除失敗")
   }
 }
 </script>
