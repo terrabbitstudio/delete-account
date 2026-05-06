@@ -2,15 +2,89 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>アカウント削除</title>
+  <title>SpeedIR アカウント削除</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f6f8;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 420px;
+      margin: 60px auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+    p {
+      font-size: 14px;
+      color: #555;
+      line-height: 1.6;
+    }
+    .warning {
+      color: #d93025;
+      font-weight: bold;
+      margin-top: 12px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #login {
+      background: #4285f4;
+      color: white;
+    }
+    #delete {
+      background: #d93025;
+      color: white;
+      display: none;
+    }
+    #user {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #333;
+    }
+    .footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #888;
+    }
+  </style>
 </head>
 <body>
 
-<h2>アカウント削除</h2>
+<div class="container">
+  <h2>SpeedIR アカウント削除</h2>
 
-<button id="login">Googleでログイン</button>
-<p id="user"></p>
-<button id="delete" style="display:none;">アカウント削除</button>
+  <p>
+    このページでは、SpeedIRのアカウントを削除できます。<br>
+    削除すると、すべてのデータが完全に消去され、復元できません。
+  </p>
+
+  <p class="warning">
+    ※この操作は取り消せません
+  </p>
+
+  <button id="login">Googleでログイン</button>
+  <p id="user"></p>
+  <button id="delete">アカウントを削除</button>
+
+  <div class="footer">
+    ログインできない場合は、アプリ内からお問い合わせください。
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -19,7 +93,7 @@ const supabaseClient = supabase.createClient(
   "sb_publishable_J4W-iZS82wfCkcBta8btQQ_ccC1I6K7"
 )
 
-// 🔐 ログイン
+// ログイン
 document.getElementById("login").onclick = async () => {
   await supabaseClient.auth.signInWithOAuth({
     provider: "google",
@@ -29,24 +103,17 @@ document.getElementById("login").onclick = async () => {
   })
 }
 
-// 👤 ログイン状態チェック
+// ユーザー確認
 async function checkUser() {
-  const { data, error } = await supabaseClient.auth.getUser()
-
-  if (error) {
-    console.log("getUser error:", error)
-    return
-  }
-
+  const { data } = await supabaseClient.auth.getUser()
   if (data.user) {
     document.getElementById("user").innerText = "ログイン中: " + data.user.email
     document.getElementById("delete").style.display = "block"
   }
 }
-
 checkUser()
 
-// 🗑️ 削除処理
+// 削除
 document.getElementById("delete").onclick = async () => {
   const confirmDelete = confirm("本当にアカウントを削除しますか？")
   if (!confirmDelete) return
@@ -54,40 +121,27 @@ document.getElementById("delete").onclick = async () => {
   const { data } = await supabaseClient.auth.getSession()
   const token = data.session?.access_token
 
-  console.log("session:", data.session)
-  console.log("token:", token)
-
   if (!token) {
     alert("ログイン状態が確認できません。再ログインしてください。")
     return
   }
 
-  try {
-    const res = await fetch("https://muhhyyzipcowojrjejkg.supabase.co/functions/v1/delete-account", {
-      method: "POST",
-      headers: {
-        "Authorization": "Bearer " + token,
-        "apikey": "sb_publishable_J4W-iZS82wfCkcBta8btQQ_ccC1I6K7",
-        "Content-Type": "application/json"
-      }
-    })
-
-    console.log("status:", res.status)
-
-    const text = await res.text()
-    console.log("response:", text)
-
-    if (res.ok) {
-      alert("アカウントを削除しました")
-      await supabaseClient.auth.signOut()
-      location.reload()
-    } else {
-      alert("削除失敗: " + text)
+  const res = await fetch("https://muhhyyzipcowojrjejkg.supabase.co/functions/v1/delete-account", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + token,
+      "apikey": "sb_publishable_J4W-iZS82wfCkcBta8btQQ_ccC1I6K7",
+      "Content-Type": "application/json"
     }
+  })
 
-  } catch (e) {
-    console.error("fetch error:", e)
-    alert("通信エラーが発生しました")
+  if (res.ok) {
+    alert("アカウントを削除しました")
+    await supabaseClient.auth.signOut()
+    location.reload()
+  } else {
+    const err = await res.text()
+    alert("削除に失敗しました: " + err)
   }
 }
 </script>
