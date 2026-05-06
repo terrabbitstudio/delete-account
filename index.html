@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>SpeedIR アカウント削除</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
@@ -11,6 +12,7 @@
       margin: 0;
       padding: 20px;
     }
+
     .container {
       max-width: 420px;
       margin: 60px auto;
@@ -19,20 +21,22 @@
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
+
     h2 {
       margin-top: 0;
-      font-size: 20px;
     }
+
     p {
       font-size: 14px;
       color: #555;
       line-height: 1.6;
     }
+
     .warning {
       color: #d93025;
       font-weight: bold;
-      margin-top: 12px;
     }
+
     button {
       width: 100%;
       padding: 12px;
@@ -42,20 +46,24 @@
       font-size: 14px;
       cursor: pointer;
     }
+
     #login {
       background: #4285f4;
       color: white;
     }
+
     #delete {
       background: #d93025;
       color: white;
       display: none;
     }
+
     #user {
       margin-top: 10px;
       font-size: 13px;
       color: #333;
     }
+
     .footer {
       margin-top: 20px;
       font-size: 12px;
@@ -63,14 +71,15 @@
     }
   </style>
 </head>
+
 <body>
 
 <div class="container">
   <h2>SpeedIR アカウント削除</h2>
 
   <p>
-    このページでは、SpeedIRのアカウントを削除できます。<br>
-    削除すると、すべてのデータが完全に消去され、復元できません。
+    このページではアカウントを削除できます。<br>
+    削除するとデータは完全に消去され、復元できません。
   </p>
 
   <p class="warning">
@@ -82,18 +91,19 @@
   <button id="delete">アカウントを削除</button>
 
   <div class="footer">
-    ログインできない場合は、アプリ内からお問い合わせください。
+    ログインできない場合はアプリ内からお問い合わせください。
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 const supabaseClient = supabase.createClient(
   "https://muhhyyzipcowojrjejkg.supabase.co",
   "sb_publishable_J4W-iZS82wfCkcBta8btQQ_ccC1I6K7"
 )
 
-// ログイン
+// 🔐 ログイン
 document.getElementById("login").onclick = async () => {
   await supabaseClient.auth.signInWithOAuth({
     provider: "google",
@@ -103,17 +113,19 @@ document.getElementById("login").onclick = async () => {
   })
 }
 
-// ユーザー確認
+// 👤 ログイン状態チェック
 async function checkUser() {
   const { data } = await supabaseClient.auth.getUser()
-  if (data.user) {
-    document.getElementById("user").innerText = "ログイン中: " + data.user.email
-    document.getElementById("delete").style.display = "block"
-  }
+
+  if (!data.user) return
+
+  document.getElementById("user").innerText = "ログイン中: " + data.user.email
+  document.getElementById("delete").style.display = "block"
 }
+
 checkUser()
 
-// 削除
+// 🗑️ 削除
 document.getElementById("delete").onclick = async () => {
   const confirmDelete = confirm("本当にアカウントを削除しますか？")
   if (!confirmDelete) return
@@ -122,7 +134,7 @@ document.getElementById("delete").onclick = async () => {
   const token = data.session?.access_token
 
   if (!token) {
-    alert("ログイン状態が確認できません。再ログインしてください。")
+    alert("ログイン状態が確認できません")
     return
   }
 
@@ -137,11 +149,17 @@ document.getElementById("delete").onclick = async () => {
 
   if (res.ok) {
     alert("アカウントを削除しました")
-    await supabaseClient.auth.signOut()
+
+    // 🔥 完全ログアウト（再ログイン防止の弱対策）
+    await supabaseClient.auth.signOut({ scope: 'global' })
+    localStorage.clear()
+    sessionStorage.clear()
+
     location.reload()
+
   } else {
     const err = await res.text()
-    alert("削除に失敗しました: " + err)
+    alert("削除失敗: " + err)
   }
 }
 </script>
