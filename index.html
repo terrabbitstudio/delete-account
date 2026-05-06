@@ -53,7 +53,7 @@ document.getElementById("delete").onclick = async () => {
     return
   }
 
-  const res = await fetch("https://muhhyyzipcowojrjejkg.supabase.co/delete-user", {
+  const res = await fetch("https://muhhyyzipcowojrjejkg.functions.supabase.co/delete-user", {
     method: "POST",
     headers: {
       "Authorization": "Bearer " + token
